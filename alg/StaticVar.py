@@ -83,6 +83,7 @@ class Static_EEW_Params():
     flagarea=3
     in_type=1
     Gain=0
+    NatureMode="0"
 
     #需添加Nature 静态子类
     @staticmethod
@@ -107,6 +108,7 @@ class Static_EEW_Params():
         setattr(self, "in_type", object["EEW_Single"]["in_model"])
         setattr(self, "FlagArea", object["EEW_Single"]["FlagArea"])
         setattr(self, "Gain", object["EEW_Single"]["Gain"])
+        setattr(self, "NatureMode", object["EEW_Single"].get("NatureMode", "0"))
 
         setattr(self,"MinDuration",object["EEW_Triger"]["MinDuration"])
         setattr(self,"LongestNonEqk",object["EEW_Triger"]["LongestNonEqk"])

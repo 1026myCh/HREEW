@@ -1,6 +1,9 @@
 import pathlib
+from pathlib import Path
+
 from class_StaV import Sta_V
 from StaticVar import StaticVar as persistent
+from StaticVar import Static_EEW_Params as EEWParams
 
 import configparser
 import os
@@ -8,33 +11,37 @@ import operator
 from distance import distance
 from importdata import importdata
 import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import numpy as np
 import openpyxl
 from EEW_Single import EEW_Single
 from function1 import *
 import time as Time
 
+
+MODULE_DIR = Path(__file__).resolve().parent
+
 startT2 = 0
 
-matplotlib.use('TkAgg')  # 或者 'Qt5Agg', 'PyQt5', 'tk' 等
-from openpyxl import load_workbook
 
+def EEW_Test_Massvie(datadirRRR, excelName=None, Num=0):
+    data_dir = Path(datadirRRR)
+    if not data_dir.exists():
+        raise FileNotFoundError(f"Data directory {data_dir} not found")
 
-def EEW_Test_Massvie(datadirRRR, excelName, Num):
     min_time = startT2
     time_start = Time.strftime("%Y-%m-%d %H:%M:%S", Time.localtime())
-    # if persistent.StartT1 < 0:
-    #     persistent.StartT1 = min_time
-    # if persistent.position < 0:
-    #     persistent.position = 0
-    # cnt=counter()
     EEW_Params = configparser.ConfigParser()
-    EEW_Params.read(os.path.join(os.getcwd(), 'EEW_Params.ini'), encoding='UTF-8')
-    Debug = EEW_Params['EEW_Single']['Debug']  # 字符非int
-    Debug = int(Debug)
+    config_path = MODULE_DIR / 'EEW_Params.ini'
+    EEW_Params.read(str(config_path), encoding='UTF-8')
+    Debug = int(EEW_Params['EEW_Single']['Debug'])  # 字符非int
     # Debug =1
     deltSecond = 0.1
-    directory = os.listdir(datadirRRR)
+    directory = sorted([p.name for p in data_dir.iterdir() if p.is_file()])
+    if not directory:
+        return []
+
     filename1 = directory[0]
     Nfile = len(directory)
     # print(filename1[-1])
@@ -43,9 +50,9 @@ def EEW_Test_Massvie(datadirRRR, excelName, Num):
     else:
         flag1 = 0
 
-    fileToread = []
     info_all = []  #
-    for k in range(0, Nfile, 3 * (flag1 + 1)):
+    group_size = 3 * (flag1 + 1)
+    for k in range(0, Nfile, group_size):
         E = -1
         N = -1
         Z = -1
@@ -61,58 +68,39 @@ def EEW_Test_Massvie(datadirRRR, excelName, Num):
         N22 = -1
         Z11 = -1
         Z22 = -1
+        group_names = directory[k:k + group_size]
+        if len(group_names) < group_size:
+            break
+
+        def _ensure_contains(name, keyword):
+            if keyword.lower() not in name.lower():
+                raise ValueError(f"{name} does not contain expected marker {keyword}")
+
         if flag1 == 0:
-            filename1 = directory[k]
-            filename2 = directory[k + 1]
-            filename3 = directory[k + 2]
-            if str.find(filename1, 'EW') < 0 and str.find(filename1, 'ew') < 0:
-                print('不是你以为的EW')
-                os.system('pause')
-            fileToread.append(datadirRRR + '\\' + filename1)
-            if str.find(filename2, 'NS') < 0 and str.find(filename2, 'ns') < 0:
-                print('不是你以为的NS')
-                os.system('pause')
-            fileToread.append(datadirRRR + '\\' + filename2)
-            if str.find(filename3, 'UD') < 0 and str.find(filename3, 'ud') < 0:
-                print('不是你以为的UD', 'UD')
-            fileToread.append(datadirRRR + '\\' + filename3)
-        elif flag1 == 1:
+            filename1, filename2, filename3 = group_names
+            _ensure_contains(filename1, 'EW')
+            _ensure_contains(filename2, 'NS')
+            _ensure_contains(filename3, 'UD')
+            group_paths = [data_dir / filename1, data_dir / filename2, data_dir / filename3]
+        else:
+            filename1, filename2, filename3, filename4, filename5, filename6 = group_names
+            _ensure_contains(filename1, 'EW1')
+            _ensure_contains(filename2, 'EW2')
+            _ensure_contains(filename3, 'NS1')
+            _ensure_contains(filename4, 'NS2')
+            _ensure_contains(filename5, 'UD1')
+            _ensure_contains(filename6, 'UD2')
+            group_paths = [
+                data_dir / filename1,
+                data_dir / filename2,
+                data_dir / filename3,
+                data_dir / filename4,
+                data_dir / filename5,
+                data_dir / filename6,
+            ]
 
-            filename1 = directory[k]
-            filename2 = directory[k + 1]
-            filename3 = directory[k + 2]
-            filename4 = directory[k + 3]
-            filename5 = directory[k + 4]
-            filename6 = directory[k + 5]
-
-            if str.find(filename1, 'EW1') < 0 and str.find(filename1, 'ew1') < 0:
-                print('不是你以为的EW1')
-                os.system('pause')
-            fileToread.append(datadirRRR + '\\' + filename1)
-            if str.find(filename2, 'EW2') < 0 and str.find(filename2, 'ew2') < 0:
-                print('不是你以为的EW2')
-                os.system('pause')
-            fileToread.append(datadirRRR + '\\' + filename2)
-            if str.find(filename3, 'NS1') < 0 and str.find(filename3, 'ns1') < 0:
-                print('不是你以为的NS1')
-                os.system('pause')
-            fileToread.append(datadirRRR + '\\' + filename3)
-            if str.find(filename4, 'NS2') < 0 and str.find(filename4, 'ns2') < 0:
-                print('不是你以为的NS2')
-                os.system('pause')
-            fileToread.append(datadirRRR + '\\' + filename4)
-            if str.find(filename5, 'UD1') < 0 and str.find(filename5, 'ud1') < 0:
-                print('不是你以为的UD1')
-                os.system('pause')
-            fileToread.append(datadirRRR + '\\' + filename5)
-            if str.find(filename6, 'UD2') < 0 and str.find(filename6, 'ud2') < 0:
-                print('不是你以为的UD2')
-                os.system('pause')
-            fileToread.append(datadirRRR + '\\' + filename6)
-
-        # 文件读取
-        file_obj = open(fileToread[k])
-        txt = file_obj.readlines()
+        with open(group_paths[0]) as file_obj:
+            txt = file_obj.readlines()
         cont1 = txt[13].find("(")
         cont2 = txt[13].rfind("/")
         p1 = float(txt[13][18:cont1])
@@ -121,57 +109,41 @@ def EEW_Test_Massvie(datadirRRR, excelName, Num):
         ind = 17
         E1 = importdata(txt, ind)
         E1 = np.array(E1, dtype=float) * Factor  # np.array(E1) * Factor
-        # E1 = E1
-        file_obj.close()
-        filecount = 3 * (flag1 + 1)
+        filecount = len(group_paths)
 
         if filecount == 3:  # 三通道传感器
-            file_obj = open(fileToread[k + 1])
-            txt = file_obj.readlines()
+            with open(group_paths[1]) as file_obj:
+                txt = file_obj.readlines()
             N1 = importdata(txt, ind)
             N1 = np.array(N1) * Factor
-            N1 = N1
-            file_obj.close()
-            file_obj = open(fileToread[k + 2])
-            txt = file_obj.readlines()
+            with open(group_paths[2]) as file_obj:
+                txt = file_obj.readlines()
             Z1 = importdata(txt, ind)
             Z1 = np.array(Z1) * Factor
-            Z1 = Z1
-            file_obj.close()
             E2 = E1
             N2 = N1
             Z2 = Z1
         else:  # 6通道传感器
-            file_obj = open(fileToread[k + 1])
-            txt = file_obj.readlines()
+            with open(group_paths[1]) as file_obj:
+                txt = file_obj.readlines()
             E2 = importdata(txt, ind)
             E2 = np.array(E2) * Factor
-            E2 = E2
-            file_obj.close()
-            file_obj = open(fileToread[k + 2])
-            txt = file_obj.readlines()
+            with open(group_paths[2]) as file_obj:
+                txt = file_obj.readlines()
             N1 = importdata(txt, ind)
             N1 = np.array(N1) * Factor
-            N1 = N1
-            file_obj.close()
-            file_obj = open(fileToread[k + 3])
-            txt = file_obj.readlines()
+            with open(group_paths[3]) as file_obj:
+                txt = file_obj.readlines()
             N2 = importdata(txt, ind)
             N2 = np.array(N2) * Factor
-            N2 = np.array(N2)
-            file_obj.close()
-            file_obj = open(fileToread[k + 4])
-            txt = file_obj.readlines()
+            with open(group_paths[4]) as file_obj:
+                txt = file_obj.readlines()
             Z1 = importdata(txt, ind)
             Z1 = np.array(Z1) * Factor
-            Z1 = Z1
-            file_obj.close()
-            file_obj = open(fileToread[k + 5])
-            txt = file_obj.readlines()
+            with open(group_paths[5]) as file_obj:
+                txt = file_obj.readlines()
             Z2 = importdata(txt, ind)
             Z2 = np.array(Z2) * Factor
-            Z2 = Z2
-            file_obj.close()
         sprate = int(txt[10][18:21])
         StCode = txt[5][18:-1]
         epiLat = float(txt[1][18:-1])
@@ -345,7 +317,8 @@ def EEW_Test_Massvie(datadirRRR, excelName, Num):
                 print(e1)
             if NewInfo == 4 or NewInfo == 100:
                 print(AlarmS)
-            if NewInfo > 0:  # NewInfo == 1 or NewInfo == 3 or NewInfo == 2:
+            nature_mode = int(getattr(EEWParams, "NatureMode", "0"))
+            if NewInfo > 0 or (nature_mode == 1 and getattr(Sta_vars_ret1, 'Is_EQK', -1) == 0):  # NewInfo == 1 or NewInfo == 3 or NewInfo == 2:
                 # EpLon_pre = StationInfo.Epi_Long
                 # EpLat_pre = StationInfo.Epi_Lat
                 EpLon_pre, EpLat_pre = LonLat(Lon, Lat, StationInfo.Azimuth, StationInfo.Distance)
@@ -364,7 +337,7 @@ def EEW_Test_Massvie(datadirRRR, excelName, Num):
                 StationInfo.Epi_Long, StationInfo.Epi_Lat, StationInfo.PGA_Pred, StationInfo.S_time_cal,
                 StationInfo.PGA_Curr, StationInfo.PGV_Curr, StationInfo.PGD_Curr
                 , StationInfo.DurCurr, StationInfo.S_time, Sta_vars2.AlarmLevel, delt_Epi, Pose,
-                NewInfo, StationInfo.PGA_Pred)
+                Sta_vars_ret1.Is_EQK, NewInfo, StationInfo.PGA_Pred)
                 info_all.append(info_one)
         plt.ioff()
         # 无报警存一行基础信息
@@ -372,7 +345,7 @@ def EEW_Test_Massvie(datadirRRR, excelName, Num):
             info_one = (
                 time_start, Num, EQ_Info, StCode, epi_time, epiLon, epiLat, magnitude, epi_dist, sprate, Lon, Lat,
                 PGA_Real1, Azimuth_real, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0 , 0, 0, 0, 0, 0, 0, 0)
+                0, 0, 0, 0, 0, 0, 0 , 0, 0, 0, 0, 0, 0, 0, 0)
             info_all.append(info_one)
         # # save figure
         psall = np.empty((len(info_all), 2))
@@ -382,68 +355,55 @@ def EEW_Test_Massvie(datadirRRR, excelName, Num):
         savefigure(trace2.T, sprate, psall, len(Data_now[:, 2]), min_time, st0, EQ_Info)
 
 
-    # excel 操作,最后一次性写
-    ws_name = 'Test_result'
-    # info_all1=list(info_all)
+    if excelName:
+        excel_path = Path(excelName)
+        if not excel_path.parent.exists():
+            excel_path.parent.mkdir(parents=True, exist_ok=True)
 
-    if not pathlib.Path(excelName).exists():
-        wb = openpyxl.Workbook()
-    else:
-        wb = openpyxl.load_workbook(excelName)
+        if not excel_path.exists():
+            wb = openpyxl.Workbook()
+        else:
+            wb = openpyxl.load_workbook(str(excel_path))
 
-    # ws=ws[ws_name]
-    heads = ['time_start', 'epi_No.', 'EQ_Info', 'STA_Name', 'Epi_time', 'epiLon_real', 'epiLat_real', 'Magnitude_real',
-             'Distance_Real', 'sprate',
-             'STA_Long', 'STA_Lat', 'PGA_Real', 'Azimuth_real', 'StartT', 'P_time', 'S_time', 'Magnitude', 'Azimuth',
-             'Epi_time',
-             'Distance', 'Epi_Long', 'Epi_Lat', 'PGA_Pred', 'S_time_cal', 'PGA_Curr', 'PGV_Curr', 'PGD_Curr', 'DurCurr',
-             'S_time2', 'AlarmLevel', 'delt_Epi', 'POS', 'Newinfo', 'PGAPre']
-    ws = wb.active
-    Title_len = len(heads)
-    max_len = ws.max_row
-    title_col = 1
-    if max_len == 1:
-        write_row = 1
-    else:
-        write_row = max_len + 1
+        heads = ['time_start', 'epi_No.', 'EQ_Info', 'STA_Name', 'Epi_time', 'epiLon_real', 'epiLat_real',
+                 'Magnitude_real', 'Distance_Real', 'sprate',
+                 'STA_Long', 'STA_Lat', 'PGA_Real', 'Azimuth_real', 'StartT', 'P_time', 'S_time', 'Magnitude',
+                 'Azimuth', 'Epi_time', 'Distance', 'Epi_Long', 'Epi_Lat', 'PGA_Pred', 'S_time_cal', 'PGA_Curr',
+                 'PGV_Curr', 'PGD_Curr', 'DurCurr', 'S_time2', 'AlarmLevel', 'delt_Epi', 'POS', 'Is_EQK', 'Newinfo',
+                 'PGAPre']
+        ws = wb.active
+        Title_len = len(heads)
+        max_len = ws.max_row
+        title_col = 1
+        if max_len == 1:
+            write_row = 1
+        else:
+            write_row = max_len + 1
 
-    for i in range(Title_len):
-        ws.cell(row=write_row, column=title_col, value=heads[i])
-        title_col += 1
-    mrow = 0
-    if info_all:
-        L = len(info_all)
-        LL = np.shape(info_all)[1]
-    else:
-        L == 0
-        LL = 0
-    Sta_vars1
+        for i in range(Title_len):
+            ws.cell(row=write_row, column=title_col, value=heads[i])
+            title_col += 1
+        if info_all:
+            L = len(info_all)
+            LL = np.shape(info_all)[1]
+        else:
+            L = 0
+            LL = 0
 
-    countrows = 0
-    max_len = ws.max_row
-    # deltline=
-    for rows in range(max_len + 1, max_len + L + 1):
+        countrows = 0
+        max_len = ws.max_row
+        for rows in range(max_len + 1, max_len + L + 1):
+            for line in range(1, LL + 1):
+                ws.cell(row=rows, column=line, value=info_all[countrows][line - 1])
+            countrows = countrows + 1
 
-        for line in range(1, LL + 1):
-            ws.cell(row=rows, column=line, value=info_all[countrows][line - 1])
-        countrows = countrows + 1
+        wb.save(str(excel_path))
 
-        mrow = mrow + 1
-        mline = 0
+        log_path = excel_path.with_suffix(excel_path.suffix + '.times.txt')
+        with log_path.open('a+') as file:
+            file.write(str(sst))
 
-        # datak=trace2
-        # StartT=[Num*10+(ttt-1)*delt/sprate+1
-        # [Sta_vars11,Sta_vars22]=EEW_Single(Data_now, StartT,Lon,Lat,Sta_vars1,Sta_vars2)
-
-        # Sta_vars1=Sta_vars11
-        # Sta_vars2=Sta_vars22
-
-    wb.save(excelName)
-    # os.system("pause")
-
-    # sst
-    with open('tttt.txt', 'a+') as file:
-        file.write(str(sst))
+    return info_all
 
 
 # os.system("pause")
@@ -660,15 +620,14 @@ def savefigure(trace2, Sprate, P_S, packageLen, min_time, st0, EQ_Info):
     new_file_name = EQ_Info + '.jpg'
     new_file_name1 = EQ_Info + '.svg'
     # 获取默认路径
-    default_path = os.getcwd()
+    default_path = MODULE_DIR
     # 完整的新文件夹路径
-    full_folder_path = os.path.join(default_path, 'figureall')
+    full_folder_path = default_path / 'figureall'
     # 创建新文件夹
-    if not os.path.exists(full_folder_path):
-        os.makedirs(full_folder_path)
+    full_folder_path.mkdir(parents=True, exist_ok=True)
     # 完整的新文件路径
-    full_file_path = os.path.join(full_folder_path, new_file_name)
-    full_file_path1 = os.path.join(full_folder_path, new_file_name1)
+    full_file_path = full_folder_path / new_file_name
+    full_file_path1 = full_folder_path / new_file_name1
     # 保存图片
     plt.savefig(full_file_path)
     plt.savefig(full_file_path1)
