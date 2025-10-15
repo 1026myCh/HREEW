@@ -13,6 +13,7 @@ from EEW_Triger2 import MyPickerS
 from Judges import Judges
 from LMS import *
 from Nature_Single import Nature_Single
+from Nature_Single1 import Nature_Single1
 from StaticVar import StaticVar as persistent  # 静态类
 from StaticVar import Static_EEW_Params as EEWParams  # 静态类
 from class_StaV import Sta_V
@@ -281,15 +282,19 @@ def EEW_Single(Data_now, StartT):
     if persistent.flag_nature == 1:  # 天然模式入口分支
 
 
-        [NewInfo, StationInfo, Sta_vars1, Sta_vars2, StartT, Alarm] = Nature_Single(Data_now, StartT,
-                                                                                    MaxEEW_times, StationInfo,
-                                                                                    NewInfo, Debug, Sprate,
-                                                                                    ThreshGals, S_time2,
-                                                                                    Buffer_len,
-                                                                                    EEW_Time_After_S, Pspeed,
-                                                                                    Sspeed, Alarm, Sta_vars1,
-                                                                                    Sta_vars2, Alarm1,
-                                                                                    Alarm2,EEWParams.flagarea,EEWParams.in_type,EEWParams.Gain)
+        nature_mode = int(getattr(EEWParams, "NatureMode", "0"))
+        nature_single_func = Nature_Single1 if nature_mode == 1 else Nature_Single
+
+        [NewInfo, StationInfo, Sta_vars1, Sta_vars2, StartT, Alarm] = nature_single_func(Data_now, StartT,
+                                                                                         MaxEEW_times, StationInfo,
+                                                                                         NewInfo, Debug, Sprate,
+                                                                                         ThreshGals, S_time2,
+                                                                                         Buffer_len,
+                                                                                         EEW_Time_After_S, Pspeed,
+                                                                                         Sspeed, Alarm, Sta_vars1,
+                                                                                         Sta_vars2, Alarm1,
+                                                                                         Alarm2, EEWParams.flagarea, EEWParams.in_type,
+                                                                                         EEWParams.Gain)
 
         return NewInfo, StationInfo, Sta_vars1, Sta_vars2, StartT, Alarm
     # 以下为模拟模式

@@ -34,7 +34,7 @@ model_Swave = None
 
 def Nature_Single(Data_now, StartT,MaxEEW_times, StationInfo, NewInfo, Debug, Sprate, ThreshGals, S_time2,
                   Buffer_len, EEW_Time_After_S, Pspeed, Sspeed, Alarm, Sta_vars1, Sta_vars2,
-                Alarm1, Alarm2,flagarea,in_model,Gain):
+                Alarm1, Alarm2,flagarea,in_model,Gain, continue_on_non_eqk=False):
     global model_Pwave
     global model_Swave
 
@@ -114,6 +114,7 @@ def Nature_Single(Data_now, StartT,MaxEEW_times, StationInfo, NewInfo, Debug, Sp
         Traces_evt = np.vstack((Traces_evt1, Traces_evt2))
 
         # Traces_evt = trace_reset(Sta_vars1, Sta_vars2, StartT, Traces_evt1, Traces_evt2, Data_now, Buffer_len)
+    traces_org = np.copy(Traces_evt)
     DurCurr = np.shape(Traces_evt1)[1] / Sprate
 
     if DurCurr < 2 and persistent.FirstStart != 1:
@@ -202,7 +203,7 @@ def Nature_Single(Data_now, StartT,MaxEEW_times, StationInfo, NewInfo, Debug, Sp
         else:
             Sta_vars1.Is_EQK = 0
             Sta_vars2.Is_EQK = 0
-            if persistent.FirstStart == 0:
+            if persistent.FirstStart == 0 and not continue_on_non_eqk:
                 # if Debug == 1:
                 #     str1 = '非地震、非地震、非地震'
                 #     logger.product(str1, 1, True)
